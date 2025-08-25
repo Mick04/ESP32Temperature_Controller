@@ -127,9 +127,22 @@ bool connectToMQTT()
 {
     Serial.print("Connecting to MQTT broker: ");
     Serial.println(MQTT_SERVER);
+    const char* lwtTopic = "esp32/system/status";
+const char* lwtMessage = "offline";
+int lwtQos = 1;
+bool lwtRetain = true;
+
 
     // Attempt to connect with credentials
-    if (mqttClient.connect(clientId.c_str(), MQTT_USER, MQTT_PASSWORD))
+    if (mqttClient.connect(
+        clientId.c_str(),
+        MQTT_USER,
+        MQTT_PASSWORD,
+        lwtTopic,    // LWT topic
+        lwtQos,      // LWT QoS
+        lwtRetain,   // LWT retain
+        lwtMessage   // LWT message
+    ))
     {
         Serial.println("MQTT connected successfully!");
 
