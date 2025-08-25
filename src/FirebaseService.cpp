@@ -21,6 +21,33 @@ static FirebaseAuth fbAuth;
 static bool fbInitialized = false;
 static bool initialScheduleFetched = false; // Track initial schedule fetch
 
+void setFirebaseOnlineStatus()
+{
+    if (!fbInitialized)
+        return;
+    FirebaseJson json;
+    json.set("status", "online");
+    json.set("last_seen", millis()); // You can use a real timestamp if available
+    Firebase.RTDB.setJSON(&fbData, "/system/device_status", &json);
+}
+
+void setFirebaseOfflineStatus()
+{
+    if (!fbInitialized)
+        return;
+    FirebaseJson json;
+    json.set("status", "offline");
+    json.set("last_seen", millis());
+    Firebase.RTDB.setJSON(&fbData, "/system/device_status", &json);
+}
+
+void updateFirebaseLastSeen()
+{
+    if (!fbInitialized)
+        return;
+    Firebase.RTDB.setInt(&fbData, "/system/device_status/last_seen", millis());
+}
+
 void initFirebase(SystemStatus &status)
 {
 
@@ -91,6 +118,9 @@ void initFirebase(SystemStatus &status)
         status.firebase = FB_CONNECTED;
         Serial.println("Firebase initialized and connected successfully");
         Serial.println("Test write successful");
+
+        // Set device online status in Firebase (LWT-like)
+        setFirebaseOnlineStatus();
 
         // Now try to read back the data we just wrote
         Serial.println("Testing data retrieval...");
@@ -305,15 +335,15 @@ void pushSensorValuesToFirebase()
 
     // Push current target temperature from schedule system (FORCE PUSH MODE)
     static float lastTargetTemp = NAN;
-    
+
     // Check if schedule data has been loaded from Firebase
     Serial.println("🔍 Checking if schedule data is available...");
     bool scheduleDataLoaded = (!isnan(currentSchedule.amTemp) && !isnan(currentSchedule.pmTemp) &&
-                              currentSchedule.amTime.length() > 0 && currentSchedule.pmTime.length() > 0);
-    
+                               currentSchedule.amTime.length() > 0 && currentSchedule.pmTime.length() > 0);
+
     Serial.print("📊 Schedule data loaded: ");
     Serial.println(scheduleDataLoaded ? "YES" : "NO");
-    
+
     if (!scheduleDataLoaded)
     {
         Serial.println("⚠️  Schedule data not yet loaded from Firebase - skipping target temperature push");
@@ -321,7 +351,7 @@ void pushSensorValuesToFirebase()
         fetchScheduleDataFromFirebase();
         return; // Skip temperature push until data is loaded
     }
-    
+
     float currentTarget = getCurrentScheduledTemperature();
 
     // Debug: Always show target temperature comparison
@@ -347,7 +377,7 @@ void pushSensorValuesToFirebase()
         static unsigned long lastPushTime = 0;
         unsigned long currentTime = millis();
         bool shouldPush = false;
-        
+
         // Push if temperature changed by more than 0.1°C
         if (isnan(lastTargetTemp) || abs(currentTarget - lastTargetTemp) > 0.1)
         {
@@ -364,7 +394,7 @@ void pushSensorValuesToFirebase()
             Serial.print(roundedTarget);
             Serial.println("°C - pushing for sync");
         }
-        
+
         if (shouldPush)
         {
             Serial.print("🔗 Attempting Firebase push to /control/target_temperature with value: ");
@@ -376,7 +406,7 @@ void pushSensorValuesToFirebase()
                 Serial.print(roundedTarget);
                 Serial.println("°C");
                 lastTargetTemp = currentTarget; // Remember this value
-                lastPushTime = currentTime; // Remember when we pushed
+                lastPushTime = currentTime;     // Remember when we pushed
             }
             else
             {
@@ -440,15 +470,15 @@ void checkAndPushTargetTemperature()
     // Static variables to track state
     static float lastTargetTemp = NAN;
     static unsigned long lastPushTime = 0;
-    
+
     // Check if schedule data has been loaded from Firebase
     Serial.println("🔍 Checking if schedule data is available...");
     bool scheduleDataLoaded = (!isnan(currentSchedule.amTemp) && !isnan(currentSchedule.pmTemp) &&
-                              currentSchedule.amTime.length() > 0 && currentSchedule.pmTime.length() > 0);
-    
+                               currentSchedule.amTime.length() > 0 && currentSchedule.pmTime.length() > 0);
+
     Serial.print("📊 Schedule data loaded: ");
     Serial.println(scheduleDataLoaded ? "YES" : "NO");
-    
+
     if (!scheduleDataLoaded)
     {
         Serial.println("⚠️  Schedule data not yet loaded from Firebase - skipping target temperature push");
@@ -456,7 +486,7 @@ void checkAndPushTargetTemperature()
         fetchScheduleDataFromFirebase();
         return; // Skip temperature push until data is loaded
     }
-    
+
     float currentTarget = getCurrentScheduledTemperature();
 
     // Debug: Always show target temperature comparison
@@ -481,7 +511,7 @@ void checkAndPushTargetTemperature()
         int roundedTarget = round(currentTarget);
         unsigned long currentTime = millis();
         bool shouldPush = false;
-        
+
         // Push if temperature changed by more than 0.1°C
         if (isnan(lastTargetTemp) || abs(currentTarget - lastTargetTemp) > 0.1)
         {
@@ -498,7 +528,7 @@ void checkAndPushTargetTemperature()
             Serial.print(roundedTarget);
             Serial.println("°C - pushing for sync");
         }
-        
+
         if (shouldPush)
         {
             Serial.print("🔗 Attempting Firebase push to /control/target_temperature with value: ");
@@ -510,7 +540,7 @@ void checkAndPushTargetTemperature()
                 Serial.print(roundedTarget);
                 Serial.println("°C");
                 lastTargetTemp = currentTarget; // Remember this value
-                lastPushTime = currentTime; // Remember when we pushed
+                lastPushTime = currentTime;     // Remember when we pushed
             }
             else
             {
@@ -572,13 +602,13 @@ void checkFirebaseTargetTemperatureChanges()
     {
         int firebaseTarget = fbData.intData();
         float currentScheduledTarget = getCurrentScheduledTemperature();
-        
+
         Serial.print("🔍 Firebase target check - Firebase: ");
         Serial.print(firebaseTarget);
         Serial.print("°C, Schedule: ");
         Serial.print(isnan(currentScheduledTarget) ? "NaN" : String(currentScheduledTarget));
         Serial.println("°C");
-        
+
         // Check if Firebase target differs from our scheduled target by more than 1°C
         if (!isnan(currentScheduledTarget) && abs(firebaseTarget - currentScheduledTarget) > 1.0)
         {
@@ -587,7 +617,7 @@ void checkFirebaseTargetTemperatureChanges()
             Serial.print("°C) differs from schedule (");
             Serial.print(currentScheduledTarget);
             Serial.println("°C) - React app may have changed it");
-            
+
             // Note: In a full implementation, you might want to:
             // 1. Temporarily override the schedule
             // 2. Send an MQTT notification

@@ -8,8 +8,10 @@
 #include <Arduino.h>
 #include "TimeManager.h"
 
+
 // Function declarations
 void updateHeaterControl();
 void refreshScheduleCache(); // Force refresh of cached schedule values
 void getTime();
+void publishSystemData();
 #endif // HEATERCONTROL_H

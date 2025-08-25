@@ -1,7 +1,6 @@
-// ==================================================
-// File: src/MQTTManager.cpp
-// ==================================================
-
+// Required for String, Serial, abs, isnan, etc.
+#include <Arduino.h>
+#include <math.h>
 #include "MQTTManager.h"
 #include "TemperatureSensors.h"
 #include "TimeManager.h"
@@ -25,6 +24,123 @@ static float prevTempRed = NAN;
 static float prevTempBlue = NAN;
 static float prevTempGreen = NAN;
 static bool firstReading = true;
+
+void publishSingleValue(const char *topic, float value)
+{
+    if (mqttStatus != MQTT_STATE_CONNECTED)
+        return;
+    String payload = String(value, 2); // 2 decimal places
+    if (mqttClient.publish(topic, payload.c_str()))
+    {
+        Serial.print("Published to ");
+        Serial.print(topic);
+        Serial.print(": ");
+        Serial.println(payload);
+    }
+    else
+    {
+        Serial.print("Failed to publish to ");
+        Serial.println(topic);
+    }
+}
+
+void publishSingleValue(const char *topic, int value)
+{
+    if (mqttStatus != MQTT_STATE_CONNECTED)
+        return;
+    String payload = String(value);
+    if (mqttClient.publish(topic, payload.c_str()))
+    {
+        Serial.print("Published to ");
+        Serial.print(topic);
+        Serial.print(": ");
+        Serial.println(payload);
+    }
+    else
+    {
+        Serial.print("Failed to publish to ");
+        Serial.println(topic);
+    }
+}
+
+void publishSingleValue(const char *topic, const char *value)
+{
+    if (mqttStatus != MQTT_STATE_CONNECTED)
+        return;
+    if (mqttClient.publish(topic, value))
+    {
+        Serial.print("Published to ");
+        Serial.print(topic);
+        Serial.print(": ");
+        Serial.println(value);
+    }
+    else
+    {
+        Serial.print("Failed to publish to ");
+        Serial.println(topic);
+    }
+}
+
+void publishTimeData()
+{
+    if (mqttStatus != MQTT_STATE_CONNECTED)
+    {
+        Serial.println("MQTT not connected, cannot publish time data");
+        return;
+    }
+    Serial.println("Publishing time data to MQTT...");
+    String timeStr = getFormattedTime();
+    String dateStr = getFormattedDate();
+    publishSingleValue(TOPIC_TIME, timeStr.c_str());
+    publishSingleValue(TOPIC_DATE, dateStr.c_str());
+}
+
+MQTTState getMQTTStatus()
+{
+    return mqttStatus;
+}
+
+bool checkTemperatureChanges()
+{
+    float tempRed = getTemperature(0);   // Red sensor
+    float tempBlue = getTemperature(1);  // Blue sensor
+    float tempGreen = getTemperature(2); // Green sensor
+    bool hasChanged = firstReading ||
+                      (abs(tempRed - prevTempRed) > 1.0 && !isnan(tempRed)) ||
+                      (abs(tempBlue - prevTempBlue) > 1.0 && !isnan(tempBlue)) ||
+                      (abs(tempGreen - prevTempGreen) > 1.0 && !isnan(tempGreen)) ||
+                      (isnan(tempRed) != isnan(prevTempRed)) ||
+                      (isnan(tempBlue) != isnan(prevTempBlue)) ||
+                      (isnan(tempGreen) != isnan(prevTempGreen));
+    return hasChanged;
+}
+
+void onMQTTMessage(char *topic, unsigned char *payload, unsigned int length)
+{
+    Serial.println("===================================");
+    Serial.println("");
+    Serial.println("🚨🚨🚨 CALLBACK ENTRY POINT HIT! 🚨🚨🚨");
+    Serial.flush();
+    Serial.println("🚨 MQTT CALLBACK TRIGGERED! 🚨");
+    Serial.print("Callback called with topic: ");
+    Serial.println(topic ? topic : "NULL");
+    Serial.print("Payload length: ");
+    Serial.println(length);
+    Serial.flush();
+    String message = "";
+    for (int i = 0; i < length; i++)
+    {
+        message += (char)payload[i];
+    }
+    Serial.print("MQTT message received on topic: ");
+    Serial.println(topic);
+    Serial.print("*****************Message: ");
+    Serial.println(message);
+    // ...existing message handling code...
+    Serial.println("===================================");
+    Serial.println("");
+}
+
 
 void initMQTT()
 {
@@ -127,22 +243,21 @@ bool connectToMQTT()
 {
     Serial.print("Connecting to MQTT broker: ");
     Serial.println(MQTT_SERVER);
-    const char* lwtTopic = "esp32/system/status";
-const char* lwtMessage = "offline";
-int lwtQos = 1;
-bool lwtRetain = true;
-
+    const char *lwtTopic = "esp32/system/status";
+    const char *lwtMessage = "offline";
+    int lwtQos = 1;
+    bool lwtRetain = true;
 
     // Attempt to connect with credentials
     if (mqttClient.connect(
-        clientId.c_str(),
-        MQTT_USER,
-        MQTT_PASSWORD,
-        lwtTopic,    // LWT topic
-        lwtQos,      // LWT QoS
-        lwtRetain,   // LWT retain
-        lwtMessage   // LWT message
-    ))
+            clientId.c_str(),
+            MQTT_USER,
+            MQTT_PASSWORD,
+            lwtTopic,  // LWT topic
+            lwtQos,    // LWT QoS
+            lwtRetain, // LWT retain
+            lwtMessage // LWT message
+            ))
     {
         Serial.println("MQTT connected successfully!");
 
@@ -377,23 +492,8 @@ void publishSensorData()
     publishSystemData();
 }
 
-void publishTimeData()
-{
-    if (mqttStatus != MQTT_STATE_CONNECTED)
-    {
-        Serial.println("MQTT not connected, cannot publish time data");
-        return;
-    }
-
-    Serial.println("Publishing time data to MQTT...");
-
-    // Get formatted time and date
-    String timeStr = getFormattedTime();
-    String dateStr = getFormattedDate();
-
-    publishSingleValue(TOPIC_TIME, timeStr.c_str());
-    publishSingleValue(TOPIC_DATE, dateStr.c_str());
-}
+// Ensure systemStatus is available for publishing heater status
+extern SystemStatus systemStatus;
 
 void publishSystemData()
 {
@@ -415,399 +515,7 @@ void publishSystemData()
 
     // Publish system status
     publishSingleValue(TOPIC_STATUS, "online");
-}
 
-void publishSingleValue(const char *topic, float value)
-{
-    if (mqttStatus != MQTT_STATE_CONNECTED)
-        return;
-
-    String payload = String(value, 2); // 2 decimal places
-    if (mqttClient.publish(topic, payload.c_str()))
-    {
-        Serial.print("Published to ");
-        Serial.print(topic);
-        Serial.print(": ");
-        Serial.println(payload);
-    }
-    else
-    {
-        Serial.print("Failed to publish to ");
-        Serial.println(topic);
-    }
-}
-
-void publishSingleValue(const char *topic, int value)
-{
-    if (mqttStatus != MQTT_STATE_CONNECTED)
-        return;
-
-    String payload = String(value);
-    if (mqttClient.publish(topic, payload.c_str()))
-    {
-        Serial.print("Published to ");
-        Serial.print(topic);
-        Serial.print(": ");
-        Serial.println(payload);
-    }
-    else
-    {
-        Serial.print("Failed to publish to ");
-        Serial.println(topic);
-    }
-}
-
-void publishSingleValue(const char *topic, const char *value)
-{
-    if (mqttStatus != MQTT_STATE_CONNECTED)
-        return;
-
-    if (mqttClient.publish(topic, value))
-    {
-        Serial.print("Published to ");
-        Serial.print(topic);
-        Serial.print(": ");
-        Serial.println(value);
-    }
-    else
-    {
-        Serial.print("Failed to publish to ");
-        Serial.println(topic);
-    }
-}
-
-void parseAndUpdateScheduleJson(const String &jsonMessage)
-{
-    Serial.println("===================================");
-    Serial.println("");
-    Serial.println("🔍 Parsing JSON schedule data...");
-
-    // Use the new JsonDocument instead of StaticJsonDocument
-    JsonDocument doc;
-
-    // Parse JSON
-    DeserializationError error = deserializeJson(doc, jsonMessage);
-
-    if (error)
-    {
-        Serial.print("❌ JSON parsing failed: ");
-        Serial.println(error.c_str());
-        return;
-    }
-
-    Serial.println("✅ JSON parsed successfully");
-
-    bool dataUpdated = false;
-
-    // Extract AM schedule data
-    if (doc["am"])
-    {
-        JsonObject am = doc["am"];
-
-        // Update AM temperature
-        if (am["temperature"])
-        {
-            float amTemp = am["temperature"];
-            if (isValidTemperature(amTemp))
-            {
-                setAMTemperature(amTemp);
-                Serial.print("✅ AM Temperature updated to: ");
-                Serial.print(amTemp);
-                Serial.println("°C");
-                dataUpdated = true;
-
-                // Update Firebase
-                updateFirebaseScheduleData("/schedule/amTemperature", String(amTemp));
-            }
-            else
-            {
-                Serial.println("❌ Invalid AM temperature in JSON");
-            }
-        }
-
-        // Update AM time
-        if (am["scheduledTime"])
-        {
-            String amTime = am["scheduledTime"];
-            if (isValidTime(amTime))
-            {
-                setAMTime(amTime);
-                Serial.print("✅ AM Time updated to: ");
-                Serial.println(amTime);
-                dataUpdated = true;
-
-                // Update Firebase
-                updateFirebaseScheduleData("/schedule/amScheduledTime", amTime);
-            }
-            else
-            {
-                Serial.println("❌ Invalid AM time format in JSON");
-            }
-        }
-    }
-
-    // Extract PM schedule data
-    if (doc["pm"])
-    {
-        JsonObject pm = doc["pm"];
-
-        // Update PM temperature
-        if (pm["temperature"])
-        {
-            float pmTemp = pm["temperature"];
-            if (isValidTemperature(pmTemp))
-            {
-                setPMTemperature(pmTemp);
-                Serial.print("✅ PM Temperature updated to: ");
-                Serial.print(pmTemp);
-                Serial.println("°C");
-                dataUpdated = true;
-
-                // Update Firebase
-                updateFirebaseScheduleData("/schedule/pmTemperature", String(pmTemp));
-            }
-            else
-            {
-                Serial.println("❌ Invalid PM temperature in JSON");
-            }
-        }
-
-        // Update PM time
-        if (pm["scheduledTime"])
-        {
-            String pmTime = pm["scheduledTime"];
-            if (isValidTime(pmTime))
-            {
-                setPMTime(pmTime);
-                Serial.print("✅ PM Time updated to: ");
-                Serial.println(pmTime);
-                dataUpdated = true;
-
-                // Update Firebase
-                updateFirebaseScheduleData("/schedule/pmScheduledTime", pmTime);
-            }
-            else
-            {
-                Serial.println("❌ Invalid PM time format in JSON");
-            }
-        }
-    }
-
-    if (dataUpdated)
-    {
-        Serial.println("📅 Schedule updated from JSON:");
-        printScheduleData();
-
-        // CRITICAL: Force schedule cache refresh immediately after JSON update
-        refreshScheduleCache();
-        Serial.println("🔄 Schedule cache force-refreshed after JSON update");
-    }
-    else
-    {
-        Serial.println("⚠️  No valid schedule data found in JSON");
-    }
-    Serial.println("===================================");
-    Serial.println("");
-}
-
-void onMQTTMessage(char *topic, byte *payload, unsigned int length)
-{
-    Serial.println("===================================");
-    Serial.println("");
-    // CRITICAL: Add immediate debug output FIRST before any processing
-    Serial.println("🚨🚨🚨 CALLBACK ENTRY POINT HIT! 🚨🚨🚨");
-    Serial.flush(); // Force immediate output
-
-    // Add immediate debug output to verify callback is triggered
-    Serial.println("🚨 MQTT CALLBACK TRIGGERED! 🚨");
-    Serial.print("Callback called with topic: ");
-    Serial.println(topic ? topic : "NULL");
-    Serial.print("Payload length: ");
-    Serial.println(length);
-    Serial.flush(); // Force immediate output
-
-    // Convert payload to string
-    String message = "";
-    for (int i = 0; i < length; i++)
-    {
-        message += (char)payload[i];
-    }
-
-    Serial.print("MQTT message received on topic: ");
-    Serial.println(topic);
-    Serial.print("*****************Message: ");
-    Serial.println(message);
-
-    // Handle incoming MQTT commands here
-    String topicStr = String(topic);
-
-    Serial.print("🔍 Processing topic: '");
-    Serial.print(topicStr);
-    Serial.println("'");
-
-    if (topicStr.startsWith("esp32/schedule/"))
-    {
-        // Handle schedule updates via MQTT (individual fields)
-        Serial.println("📡 Schedule update received via MQTT");
-        handleScheduleUpdate(topic, message);
-    }
-    else if (topicStr.startsWith("esp32/control/"))
-    {
-        Serial.println("🎯 Matched esp32/control/ prefix");
-        // Handle control commands
-        if (topicStr.endsWith("schedule"))
-        {
-            // Handle JSON schedule data
-            Serial.println("📡 JSON Schedule update received via MQTT");
-            parseAndUpdateScheduleJson(message);
-        }
-        else if (topicStr.startsWith("esp32/control/schedule/"))
-        {
-            // Handle individual schedule field updates from React app
-            Serial.println("📡 Individual schedule field update received via MQTT");
-
-            Serial.print("🔍 Checking exact topic match for: ");
-            Serial.println(topicStr);
-
-            if (topicStr == TOPIC_CONTROL_AM_TEMP)
-            {
-                Serial.println("✅ Matched AM temperature topic");
-                float temp = message.toFloat();
-                Serial.print("🌡️  Parsed temperature: ");
-                Serial.println(temp);
-                if (isValidTemperature(temp))
-                {
-                    setAMTemperature(temp);
-                    Serial.print("✅ AM Temperature updated via MQTT: ");
-                    Serial.println(temp);
-
-                    // CRITICAL: Force schedule cache refresh immediately
-                    refreshScheduleCache();
-                    Serial.println("🔄 Schedule cache force-refreshed after AM temp update");
-                }
-                else
-                {
-                    Serial.println("❌ Invalid temperature value");
-                }
-            }
-            else if (topicStr == TOPIC_CONTROL_PM_TEMP)
-            {
-                Serial.println("✅ Matched PM temperature topic");
-                float temp = message.toFloat();
-                Serial.print("🌡️  Parsed temperature: ");
-                Serial.println(temp);
-                if (isValidTemperature(temp))
-                {
-                    setPMTemperature(temp);
-                    Serial.print("✅ PM Temperature updated via MQTT: ");
-                    Serial.println(temp);
-
-                    // CRITICAL: Force schedule cache refresh immediately
-                    refreshScheduleCache();
-                    Serial.println("🔄 Schedule cache force-refreshed after PM temp update");
-                }
-                else
-                {
-                    Serial.println("❌ Invalid temperature value");
-                }
-            }
-            else if (topicStr == TOPIC_CONTROL_AM_TIME || topicStr == "esp32/control/schedule/am/scheduledTime")
-            {
-                Serial.println("✅ Matched AM time topic");
-                Serial.print("🕐 Parsed time: ");
-                Serial.println(message);
-                if (isValidTime(message))
-                {
-                    setAMTime(message);
-                    Serial.print("✅ AM Time updated via MQTT: ");
-                    Serial.println(message);
-
-                    // CRITICAL: Force schedule cache refresh immediately
-                    refreshScheduleCache();
-                    Serial.println("🔄 Schedule cache force-refreshed after AM time update");
-                }
-                else
-                {
-                    Serial.println("❌ Invalid time format");
-                }
-            }
-            else if (topicStr == TOPIC_CONTROL_PM_TIME || topicStr == "esp32/control/schedule/pm/scheduledTime")
-            {
-                Serial.println("✅ Matched PM time topic");
-                Serial.print("🕐 Parsed time: ");
-                Serial.println(message);
-                if (isValidTime(message))
-                {
-                    setPMTime(message);
-                    Serial.print("✅ PM Time updated via MQTT: ");
-                    Serial.println(message);
-
-                    // CRITICAL: Force schedule cache refresh immediately
-                    refreshScheduleCache();
-                    Serial.println("🔄 Schedule cache force-refreshed after PM time update");
-                }
-                else
-                {
-                    Serial.println("❌ Invalid time format");
-                }
-            }
-        }
-        else if (topicStr.endsWith("target_temperature"))
-        {
-            float targetTemp = message.toFloat();
-            Serial.print("Setting target temperature to: ");
-            Serial.println(targetTemp);
-            // You can integrate this with Firebase or local control
-        }
-        else if (topicStr.endsWith("heater_enable"))
-        {
-            bool enable = (message == "true" || message == "1");
-            Serial.print("Setting heater enable to: ");
-            Serial.println(enable);
-            // You can integrate this with relay control
-        }
-    }
-    else if (topicStr.startsWith("esp32/commands/"))
-    {
-        // Handle system commands
-        if (topicStr.endsWith("restart"))
-        {
-            Serial.println("Restart command received");
-            ESP.restart();
-        }
-        else if (topicStr.endsWith("status"))
-        {
-            Serial.println("Status request received");
-            publishSystemData();
-            publishSensorData();
-            publishTimeData();
-        }
-    }
-    Serial.println("===================================");
-    Serial.println("");
-}
-
-MQTTState getMQTTStatus()
-{
-    return mqttStatus;
-}
-
-bool checkTemperatureChanges()
-{
-    // Get current temperature readings
-    float tempRed = getTemperature(0);   // Red sensor
-    float tempBlue = getTemperature(1);  // Blue sensor
-    float tempGreen = getTemperature(2); // Green sensor
-
-    // Check if any temperature has changed (or this is the first reading)
-    // Using 1.0°C as the minimum change threshold to avoid noise
-    bool hasChanged = firstReading ||
-                      (abs(tempRed - prevTempRed) > 1.0 && !isnan(tempRed)) ||
-                      (abs(tempBlue - prevTempBlue) > 1.0 && !isnan(tempBlue)) ||
-                      (abs(tempGreen - prevTempGreen) > 1.0 && !isnan(tempGreen)) ||
-                      (isnan(tempRed) != isnan(prevTempRed)) ||
-                      (isnan(tempBlue) != isnan(prevTempBlue)) ||
-                      (isnan(tempGreen) != isnan(prevTempGreen));
-
-    return hasChanged;
+    // Publish heater status as "ON" or "OFF"
+    publishSingleValue("esp32/system/heater", systemStatus.heater ? "ON" : "OFF");
 }

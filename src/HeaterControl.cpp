@@ -85,6 +85,7 @@ void updateHeaterControl()
     {
         digitalWrite(RELAY_PIN, LOW);
         systemStatus.heater = HEATER_OFF;
+        publishSystemData();
         Serial.println("🔥 Heater OFF - Target > Current");
         return;
     }
@@ -92,6 +93,7 @@ void updateHeaterControl()
     {
         digitalWrite(RELAY_PIN, HIGH);
         systemStatus.heater = HEATER_ON;
+        publishSystemData();
         Serial.println("🔥 Heater ON - Target < Current");
     }
 }
