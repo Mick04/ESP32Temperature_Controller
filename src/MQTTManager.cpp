@@ -141,7 +141,6 @@ void onMQTTMessage(char *topic, unsigned char *payload, unsigned int length)
     Serial.println("");
 }
 
-
 void initMQTT()
 {
     Serial.println("Initializing MQTT Manager...");
