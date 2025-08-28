@@ -23,6 +23,8 @@ static bool initialScheduleFetched = false; // Track initial schedule fetch
 
 void setFirebaseOnlineStatus()
 {
+    Serial.println("🤠🤠🤠🤠🤠🤠🤠🤠🤠🤠🤠 Line 26 void setFirebaseOnlineStatus()...");
+    Serial.println(" ");
     if (!fbInitialized)
         return;
     FirebaseJson json;
@@ -33,6 +35,8 @@ void setFirebaseOnlineStatus()
 
 void setFirebaseOfflineStatus()
 {
+    Serial.println("😈😈😈😈😈😈😈😈😈😈😈😈😈😈 Line 37 void setFirebaseOfflineStatus()...");
+    Serial.println(" ");
     if (!fbInitialized)
         return;
     FirebaseJson json;
@@ -43,6 +47,8 @@ void setFirebaseOfflineStatus()
 
 void updateFirebaseLastSeen()
 {
+    Serial.println("👹👹👹👹👹👹👹👹👹👹👹👹👹👹👹 Line 48 void updateFirebaseLastSeen()...");
+    Serial.println(" ");
     if (!fbInitialized)
         return;
     Firebase.RTDB.setInt(&fbData, "/system/device_status/last_seen", millis());
@@ -50,7 +56,8 @@ void updateFirebaseLastSeen()
 
 void initFirebase(SystemStatus &status)
 {
-
+    Serial.println("👺👺👺👺👺👺👺👺👺👺👺👺👺👺👺👺👺 Line 56 void initFirebase(SystemStatus &status)...");
+    Serial.println(" ");
     // Initialize only when WiFi connected
     if (WiFi.status() != WL_CONNECTED)
     {
@@ -192,6 +199,8 @@ void initFirebase(SystemStatus &status)
  */
 void handleFirebase(SystemStatus &status)
 {
+    Serial.println("🤡🤡🤡🤡🤡🤡🤡🤡🤡🤡🤡🤡🤡🤡🤡🤡🤡🤡 Line 198 handleFirebase...");
+    Serial.println(" ");
     // === FIREBASE INITIALIZATION PHASE ===
     // If Firebase hasn't been initialized yet, try to initialize it
     if (!fbInitialized)
@@ -256,6 +265,8 @@ void handleFirebase(SystemStatus &status)
 
 void pushSensorValuesToFirebase()
 {
+    Serial.println("💩💩💩💩💩💩💩💩💩💩💩💩💩💩💩💩 Line 263 pushSensorValuesToFirebase...");
+    Serial.println(" ");
     if (!fbInitialized)
     {
         Serial.println("Firebase not initialized, cannot push data");
@@ -344,13 +355,13 @@ void pushSensorValuesToFirebase()
     Serial.print("📊 Schedule data loaded: ");
     Serial.println(scheduleDataLoaded ? "YES" : "NO");
 
-    if (!scheduleDataLoaded)
-    {
-        Serial.println("⚠️  Schedule data not yet loaded from Firebase - skipping target temperature push");
-        Serial.println("🔄 Attempting to fetch schedule data...");
-        fetchScheduleDataFromFirebase();
-        return; // Skip temperature push until data is loaded
-    }
+    // if (!scheduleDataLoaded)
+    // {
+    //     Serial.println("⚠️  Schedule data not yet loaded from Firebase - skipping target temperature push");
+    //     Serial.println("🔄 Attempting to fetch schedule data...");
+    //     fetchScheduleDataFromFirebase();
+    //     return; // Skip temperature push until data is loaded
+    // }
 
     float currentTarget = getCurrentScheduledTemperature();
 
@@ -438,7 +449,7 @@ void pushSensorValuesToFirebase()
         Serial.println(AmFlag ? "true (AM period)" : "false (PM period)");
         Serial.print("🌅 AM Temp: ");
         Serial.println(isnan(currentSchedule.amTemp) ? "NaN" : String(currentSchedule.amTemp));
-        Serial.print("🌆 PM Temp: ");
+        Serial.print("🌆🌆🌆🌆🌆🌆🌆🌆🌆🌆 PM Temp: ");
         Serial.println(isnan(currentSchedule.pmTemp) ? "NaN" : String(currentSchedule.pmTemp));
         Serial.print("🌅 AM Time: ");
         Serial.println(currentSchedule.amTime.length() > 0 ? currentSchedule.amTime : "Empty");
@@ -461,6 +472,8 @@ void pushSensorValuesToFirebase()
 
 void checkAndPushTargetTemperature()
 {
+    Serial.println("👻👻👻👻👻👻👻👻👻👻👻👻👻👻👻👻 Line 469 checkAndPushTargetTemperature...");
+    Serial.println(" ");
     if (!fbInitialized)
     {
         Serial.println("Firebase not initialized, cannot push target temperature");
@@ -583,6 +596,8 @@ void checkAndPushTargetTemperature()
 
 void checkFirebaseTargetTemperatureChanges()
 {
+    Serial.println("💀💀💀💀💀💀💀💀💀💀💀💀💀💀💀 Line 592 checkFirebaseTargetTemperatureChanges...");
+    Serial.println(" ");
     if (!fbInitialized)
     {
         return; // Skip if Firebase not ready
@@ -637,6 +652,8 @@ void checkFirebaseTargetTemperatureChanges()
 
 void fetchControlValuesFromFirebase()
 {
+    Serial.println("🤡🤡🤡🤡🤡🤡🤡🤡🤡🤡🤡🤡🤡🤡🤡🤡🤡 Line 647 fetchControlValuesFromFirebase...");
+    Serial.println(" ");
     if (!fbInitialized)
     {
         Serial.println("Firebase not initialized, cannot fetch data");
@@ -707,6 +724,8 @@ void fetchControlValuesFromFirebase()
 // Helper functions to set control values
 void setControlValue(const char *path, float value)
 {
+    Serial.println("👽👽👽👽👽👽👽👽👽👽👽👽👽 Line 727 void setControlValue(const char *path, float value)...");
+    Serial.println(" ");
     if (!fbInitialized)
     {
         Serial.println("Firebase not initialized, cannot set control value");
@@ -729,6 +748,8 @@ void setControlValue(const char *path, float value)
 
 void setControlValue(const char *path, bool value)
 {
+    Serial.println("👾👾👾👾👾👾👾👾👾👾👾👾👾👾👾👾👾 Line 751 void setControlValue...");
+    Serial.println(" ");
     if (!fbInitialized)
     {
         Serial.println("Firebase not initialized, cannot set control value");
@@ -751,6 +772,8 @@ void setControlValue(const char *path, bool value)
 
 void setControlValue(const char *path, const char *value)
 {
+    Serial.println("🤖🤖🤖🤖🤖🤖🤖🤖🤖🤖🤖🤖🤖🤖🤖 Line 775 void setControlValue...");
+    Serial.println(" ");
     if (!fbInitialized)
     {
         Serial.println("Firebase not initialized, cannot set control value");
@@ -774,6 +797,7 @@ void setControlValue(const char *path, const char *value)
 // Schedule data management functions
 bool isInitialScheduleFetched()
 {
+    Serial.println("🎃🎃🎃🎃🎃🎃🎃🎃🎃🎃🎃🎃🎃 Line 800 bool isInitialScheduleFetched()...");
     return initialScheduleFetched;
 }
 

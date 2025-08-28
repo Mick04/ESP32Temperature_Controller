@@ -9,10 +9,12 @@
 
 // Global schedule data instance - no default values
 ScheduleData currentSchedule = {
-    .amTemp = NAN, // No default AM temperature
-    .pmTemp = NAN, // No default PM temperature
-    .amTime = "",  // No default AM time
-    .pmTime = ""   // No default PM time
+    NAN,   // amTemp
+    NAN,   // pmTemp
+    "",    // amTime
+    "",    // pmTime
+    false, // amEnabled
+    false  // pmEnabled
 };
 
 // Firebase data object (extern from FirebaseService.h)
@@ -174,38 +176,121 @@ void handleScheduleUpdate(const char *topic, const String &message)
 
     // Parse topic to determine which schedule parameter to update
     String topicStr = String(topic);
+    topicStr.trim();
+    topicStr.toLowerCase();
+    Serial.print("🔍 Raw topic: '");
+    Serial.print(topic);
+    Serial.println("'");
+    Serial.print("🔍 Normalized topic string: '");
+    Serial.print(topicStr);
+    Serial.println("'");
+    Serial.print("🔍 Raw message: '");
+    Serial.print(message);
+    Serial.println("'");
     bool updateSuccessful = false;
     String firebasePath = "";
 
-    if (topicStr.endsWith("/amScheduledTime"))
+    if (topicStr.endsWith("control/schedule"))
     {
-        if (isValidTime(message))
+        // Handle full schedule JSON
+        Serial.println("📝 Parsing full schedule JSON from MQTT...");
+#if defined(ARDUINOJSON_VERSION_MAJOR)
+        // Use ArduinoJson library
+        StaticJsonDocument<256> doc;
+        DeserializationError error = deserializeJson(doc, message);
+        if (error)
         {
-            setAMTime(message);
-            updateSuccessful = true;
-            firebasePath = "/schedule/amScheduledTime";
-            Serial.println("✅ AM Time updated via MQTT");
+            Serial.print("❌ Failed to parse schedule JSON: ");
+            Serial.println(error.c_str());
         }
         else
         {
-            Serial.println("❌ Invalid AM time format received via MQTT");
+            // AM block
+            if (doc.containsKey("am"))
+            {
+                JsonObject am = doc["am"];
+                if (am.containsKey("scheduledTime"))
+                {
+                    String amTime = am["scheduledTime"].as<String>();
+
+                    Serial.print("[DEBUG] Extracted amTime from JSON: ");
+                    Serial.println(amTime);
+                    if (isValidTime(amTime))
+                    {
+                        Serial.println("[DEBUG] setAMTime called from JSON block");
+                        setAMTime(amTime);
+                        updateFirebaseScheduleData("/schedule/amScheduledTime", amTime);
+                    }
+                    else
+                    {
+                        Serial.println("[DEBUG] amTime from JSON is invalid");
+                    }
+                }
+                if (am.containsKey("temperature"))
+                {
+                    float amTemp = am["temperature"].as<float>();
+                    Serial.print("[DEBUG] Extracted amTemp from JSON: ");
+                    Serial.println(amTemp);
+                    if (isValidTemperature(amTemp))
+                    {
+                        Serial.println("[DEBUG] setAMTemperature called from JSON block");
+                        setAMTemperature(amTemp);
+                        updateFirebaseScheduleData("/schedule/amTemperature", String(amTemp));
+                    }
+                    else
+                    {
+                        Serial.println("[DEBUG] amTemp from JSON is invalid");
+                    }
+                }
+            }
+            // PM block
+            if (doc.containsKey("pm"))
+            {
+                JsonObject pm = doc["pm"];
+                if (pm.containsKey("scheduledTime"))
+                {
+                    String pmTime = pm["scheduledTime"].as<String>();
+                    Serial.print("[DEBUG] Extracted pmTime from JSON: ");
+                    Serial.println(pmTime);
+                    if (isValidTime(pmTime))
+                    {
+                        Serial.println("[DEBUG] setPMTime called from JSON block");
+                        setPMTime(pmTime);
+                        updateFirebaseScheduleData("/schedule/pmScheduledTime", pmTime);
+                    }
+                    else
+                    {
+                        Serial.println("[DEBUG] pmTime from JSON is invalid");
+                    }
+                }
+                if (pm.containsKey("temperature"))
+                {
+                    float pmTemp = pm["temperature"].as<float>();
+                    Serial.print("[DEBUG] Extracted pmTemp from JSON: ");
+                    Serial.println(pmTemp);
+                    if (isValidTemperature(pmTemp))
+                    {
+                        Serial.println("[DEBUG] setPMTemperature called from JSON block");
+                        setPMTemperature(pmTemp);
+                        updateFirebaseScheduleData("/schedule/pmTemperature", String(pmTemp));
+                    }
+                    else
+                    {
+                        Serial.println("[DEBUG] pmTemp from JSON is invalid");
+                    }
+                }
+            }
+            Serial.println("✅ Full schedule updated from MQTT JSON");
         }
+#else
+        Serial.println("❌ ArduinoJson library not available for schedule JSON parsing");
+#endif
+        printScheduleData();
+        return;
     }
-    else if (topicStr.endsWith("/pmScheduledTime"))
-    {
-        if (isValidTime(message))
-        {
-            setPMTime(message);
-            updateSuccessful = true;
-            firebasePath = "/schedule/pmScheduledTime";
-            Serial.println("✅ PM Time updated via MQTT");
-        }
-        else
-        {
-            Serial.println("❌ Invalid PM time format received via MQTT");
-        }
-    }
-    else if (topicStr.endsWith("/amTemperature"))
+
+    // Individual topic handling (AM/PM temperature, time, enabled, scheduledTime)
+    if (topicStr.endsWith("/am/temperature"))
     {
         float temp = message.toFloat();
         if (isValidTemperature(temp))
@@ -220,7 +305,7 @@ void handleScheduleUpdate(const char *topic, const String &message)
             Serial.println("❌ Invalid AM temperature received via MQTT");
         }
     }
-    else if (topicStr.endsWith("/pmTemperature"))
+    else if (topicStr.endsWith("/pm/temperature"))
     {
         float temp = message.toFloat();
         if (isValidTemperature(temp))
@@ -233,6 +318,80 @@ void handleScheduleUpdate(const char *topic, const String &message)
         else
         {
             Serial.println("❌ Invalid PM temperature received via MQTT");
+        }
+    }
+    else if (topicStr.endsWith("/am/time"))
+    {
+        if (isValidTime(message))
+        {
+            setAMTime(message);
+            updateSuccessful = true;
+            firebasePath = "/schedule/amScheduledTime";
+            Serial.println("✅ AM Time updated via MQTT");
+        }
+        else
+        {
+            Serial.println("❌ Invalid AM time format received via MQTT");
+        }
+    }
+    else if (topicStr.endsWith("/pm/time"))
+    {
+        if (isValidTime(message))
+        {
+            setPMTime(message);
+            updateSuccessful = true;
+            firebasePath = "/schedule/pmScheduledTime";
+            Serial.println("✅ PM Time updated via MQTT");
+        }
+        else
+        {
+            Serial.println("❌ Invalid PM time format received via MQTT");
+        }
+    }
+    else if (topicStr.endsWith("/am/enabled"))
+    {
+        bool enabled = (message == "true");
+        currentSchedule.amEnabled = enabled;
+        updateSuccessful = true;
+        firebasePath = "/schedule/amEnabled";
+        Serial.print("✅ AM Enabled updated via MQTT: ");
+        Serial.println(enabled ? "true" : "false");
+    }
+    else if (topicStr.endsWith("/pm/enabled"))
+    {
+        bool enabled = (message == "true");
+        currentSchedule.pmEnabled = enabled;
+        updateSuccessful = true;
+        firebasePath = "/schedule/pmEnabled";
+        Serial.print("✅ PM Enabled updated via MQTT: ");
+        Serial.println(enabled ? "true" : "false");
+    }
+    else if (topicStr.endsWith("/am/scheduledtime"))
+    {
+        if (isValidTime(message))
+        {
+            setAMTime(message);
+            updateSuccessful = true;
+            firebasePath = "/schedule/amScheduledTime";
+            Serial.println("✅ AM ScheduledTime updated via MQTT");
+        }
+        else
+        {
+            Serial.println("❌ Invalid AM scheduledTime format received via MQTT");
+        }
+    }
+    else if (topicStr.endsWith("/pm/scheduledtime"))
+    {
+        if (isValidTime(message))
+        {
+            setPMTime(message);
+            updateSuccessful = true;
+            firebasePath = "/schedule/pmScheduledTime";
+            Serial.println("✅ PM ScheduledTime updated via MQTT");
+        }
+        else
+        {
+            Serial.println("❌ Invalid PM scheduledTime format received via MQTT");
         }
     }
     else
@@ -345,6 +504,8 @@ String getPMTime()
 // Setter functions
 void setAMTemperature(float temp)
 {
+    Serial.print("[DEBUG] setAMTemperature called with value: ");
+    Serial.println(temp);
     if (isValidTemperature(temp))
     {
         currentSchedule.amTemp = temp;
@@ -360,6 +521,8 @@ void setAMTemperature(float temp)
 
 void setPMTemperature(float temp)
 {
+    Serial.print("[DEBUG] setPMTemperature called with value: ");
+    Serial.println(temp);
     if (isValidTemperature(temp))
     {
         currentSchedule.pmTemp = temp;
@@ -375,6 +538,8 @@ void setPMTemperature(float temp)
 
 void setAMTime(const String &time)
 {
+    Serial.print("[DEBUG] setAMTime called with value: ");
+    Serial.println(time);
     if (isValidTime(time))
     {
         currentSchedule.amTime = time;
@@ -389,6 +554,8 @@ void setAMTime(const String &time)
 
 void setPMTime(const String &time)
 {
+    Serial.print("[DEBUG] setPMTime called with value: ");
+    Serial.println(time);
     if (isValidTime(time))
     {
         currentSchedule.pmTime = time;

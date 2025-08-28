@@ -10,10 +10,12 @@
 // Schedule structure to hold AM and PM values
 struct ScheduleData
 {
-    float amTemp;  // Default AM temperature
-    float pmTemp;  // Default PM temperature
-    String amTime; // Default AM time
-    String pmTime; // Default PM time
+    float amTemp;   // Default AM temperature
+    float pmTemp;   // Default PM temperature
+    String amTime;  // Default AM time
+    String pmTime;  // Default PM time
+    bool amEnabled; // AM schedule enabled
+    bool pmEnabled; // PM schedule enabled
 };
 
 // Global schedule data

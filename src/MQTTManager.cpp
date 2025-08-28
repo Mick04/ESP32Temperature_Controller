@@ -1,3 +1,7 @@
+//================
+// MQTT Manager
+//================
+
 // Required for String, Serial, abs, isnan, etc.
 #include <Arduino.h>
 #include <math.h>
@@ -136,7 +140,26 @@ void onMQTTMessage(char *topic, unsigned char *payload, unsigned int length)
     Serial.println(topic);
     Serial.print("*****************Message: ");
     Serial.println(message);
-    // ...existing message handling code...
+    // Route schedule topics to handleScheduleUpdate
+    String topicStr = String(topic);
+    topicStr.trim();
+    topicStr.toLowerCase();
+    if (topicStr.endsWith("control/schedule") ||
+        topicStr.endsWith("control/schedule/am/temperature") ||
+        topicStr.endsWith("control/schedule/pm/temperature") ||
+        topicStr.endsWith("control/schedule/am/time") ||
+        topicStr.endsWith("control/schedule/pm/time") ||
+        topicStr.endsWith("control/schedule/am/enabled") ||
+        topicStr.endsWith("control/schedule/pm/enabled") ||
+        topicStr.endsWith("control/schedule/pm/scheduledtime"))
+    {
+        Serial.println("[DEBUG] Routing to handleScheduleUpdate...");
+        handleScheduleUpdate(topic, message);
+    }
+    else
+    {
+        Serial.println("[DEBUG] Topic not routed to handleScheduleUpdate.");
+    }
     Serial.println("===================================");
     Serial.println("");
 }
