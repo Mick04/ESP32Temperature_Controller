@@ -36,7 +36,7 @@ void updateHeaterControl()
     float targetTemp = AmFlag ? currentSchedule.amTemp : currentSchedule.pmTemp;
 
     // // Display current values BEFORE control logic
-    // Serial.print("************* Target Temperature **************: ");
+     Serial.print("************* Target Temperature **************: ");
     // Serial.println(targetTemp);
     // Serial.print("pmTime ");
     // Serial.println(currentSchedule.pmTime);
