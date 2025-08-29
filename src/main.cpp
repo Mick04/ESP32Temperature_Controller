@@ -49,9 +49,9 @@ void setup()
   initTemperatureSensors();
   Serial.println("✅ Temperature sensors initialized");
 
-  // Initialize schedule manager
-  initScheduleManager();
-  Serial.println("✅ Schedule manager initialized");
+  // // Initialize schedule manager
+  // initScheduleManager();
+  // Serial.println("✅ Schedule manager initialized");
 
   // Initialize WiFi
   initWiFi(systemStatus);

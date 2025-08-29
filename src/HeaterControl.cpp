@@ -28,57 +28,28 @@ void updateHeaterControl()
     }
     else
     {
-        AmFlag = false;
+       AmFlag = false;
     }
-
-    // Serial.println("******************Updating Heater Control...**************");
-
-    // Cache schedule values to avoid unnecessary function calls
-    // These values only change when updated via MQTT from React app
-    static float cachedAmTemp = NAN;
-    static float cachedPmTemp = NAN;
-    static String cachedAmTime = "";
-    static String cachedPmTime = "";
-    static bool scheduleLoaded = false;
-
-    // Only load schedule values once or when they need to be refreshed
-    if (!scheduleLoaded || forceScheduleRefresh)
-    {
-        cachedAmTemp = getAMTemperature();
-        cachedPmTemp = getPMTemperature();
-        cachedAmTime = getAMTime();
-        cachedPmTime = getPMTime();
-        scheduleLoaded = true;
-        forceScheduleRefresh = false; // Reset the refresh flag
-        Serial.println("📋 Schedule values cached/refreshed");
-    }
-
-    // Use cached values
-    float amTemp = cachedAmTemp;
-    float pmTemp = cachedPmTemp;
-    String amTime = cachedAmTime;
-    String pmTime = cachedPmTime;
-
     readAllSensors();
     float tempRed = getTemperature(0); // Before the if statement
  
-    float targetTemp = AmFlag ? amTemp : pmTemp;
+    float targetTemp = AmFlag ? currentSchedule.amTemp : currentSchedule.pmTemp;
 
-    // Display current values BEFORE control logic
-    Serial.print("************* Target Temperature **************: ");
-    Serial.println(targetTemp);
-    Serial.print("pmTime ");
-    Serial.println(pmTime);
-    Serial.print("amTime ");
-    Serial.println(amTime);
-    Serial.print("pmTemp ");
-    Serial.println(pmTemp);
-    Serial.print("amTemp ");
-    Serial.println(amTemp);
-    Serial.print("Current Red Sensor: ");
-    Serial.print(tempRed);
-    Serial.println("°C");
-    Serial.println("*******************************");
+    // // Display current values BEFORE control logic
+    // Serial.print("************* Target Temperature **************: ");
+    // Serial.println(targetTemp);
+    // Serial.print("pmTime ");
+    // Serial.println(currentSchedule.pmTime);
+    // Serial.print("amTime ");
+    // Serial.println(currentSchedule.amTime);
+    // Serial.print("pmTemp ");
+    // Serial.println(currentSchedule.pmTemp);
+    // Serial.print("amTemp ");
+    // Serial.println(currentSchedule.amTemp);
+    // Serial.print("Current Red Sensor: ");
+    // Serial.print(tempRed);
+    // Serial.println("°C");
+    // Serial.println("*******************************");
 
     // Check if the current target temperature is valid
     if (targetTemp < tempRed)

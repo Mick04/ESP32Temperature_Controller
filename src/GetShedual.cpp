@@ -20,13 +20,16 @@ ScheduleData currentSchedule = {
 // Firebase data object (extern from FirebaseService.h)
 extern FirebaseData fbData;
 
-void initScheduleManager()
-{
-    Serial.println("Schedule Manager initialized - waiting for Firebase data");
-    Serial.println("⚠️  No default values set - schedule data must be retrieved from Firebase");
-    printScheduleData();
-}
-
+// void initScheduleManager()
+// {
+//     Serial.println("Schedule Manager initialized - waiting for Firebase data");
+//     Serial.println("⚠️  No default values set - schedule data must be retrieved from Firebase");
+//     printScheduleData();
+// }
+//=======================================================
+// I only want to fetch the schedule data once on startup
+//                        start     
+//=======================================================
 void fetchScheduleDataFromFirebase()
 {
     Serial.println("=== Fetching Schedule Data from Firebase ===");
@@ -162,10 +165,14 @@ void fetchScheduleDataFromFirebase()
         Serial.println("⚠️  Some schedule data failed to retrieve - no default values available");
     }
 
-    Serial.println("=== Current Schedule Data ===");
-    printScheduleData();
-    Serial.println("==============================");
+    // Serial.println("=== Current Schedule Data ===");
+    // printScheduleData();
+    // Serial.println("==============================");
 }
+//=======================================================
+// I only want to fetch the schedule data once on startup
+//                        end     
+//=======================================================
 
 void handleScheduleUpdate(const char *topic, const String &message)
 {
@@ -190,105 +197,83 @@ void handleScheduleUpdate(const char *topic, const String &message)
     bool updateSuccessful = false;
     String firebasePath = "";
 
-    if (topicStr.endsWith("control/schedule"))
-    {
-        // Handle full schedule JSON
-        Serial.println("📝 Parsing full schedule JSON from MQTT...");
-#if defined(ARDUINOJSON_VERSION_MAJOR)
-        // Use ArduinoJson library
-        StaticJsonDocument<256> doc;
-        DeserializationError error = deserializeJson(doc, message);
-        if (error)
+     if (topicStr.endsWith("control/schedule"))
+     {
+        if (topicStr == "am/scheduledTime")
         {
-            Serial.print("❌ Failed to parse schedule JSON: ");
-            Serial.println(error.c_str());
+            String amTime = message;
+            currentSchedule.amTime = amTime;
+            Serial.print("[DEBUG] Extracted amTime from MQTT: ");
+            Serial.println(amTime);
+            if (isValidTime(amTime))
+            {
+                Serial.print("*********************");
+                Serial.print("*********************");
+                Serial.print("*********************");
+                Serial.print(amTime);
+                
+                Serial.println("[DEBUG] setAMTime called from MQTT");
+                setAMTime(amTime);
+                updateFirebaseScheduleData("/schedule/amScheduledTime", amTime);
+            }
+            else
+            {
+                Serial.println("[DEBUG] amTime from MQTT is invalid");
+            }
+        }
+        else if (topicStr == "pm/scheduledTime")
+        {
+            String pmTime = message;
+            Serial.print("[DEBUG] Extracted pmTime from MQTT: ");
+            Serial.println(pmTime);
+            if (isValidTime(pmTime))
+            {
+                Serial.println("[DEBUG] setPMTime called from MQTT");
+                setPMTime(pmTime);
+                updateFirebaseScheduleData("/schedule/pmScheduledTime", pmTime);
+            }
+            else
+            {
+                Serial.println("[DEBUG] pmTime from MQTT is invalid");
+            }
+        }
+        else if (topicStr == "am/temperature")
+        {
+            float amTemp = message.toFloat();
+            Serial.print("[DEBUG] Extracted amTemp from MQTT: ");
+            Serial.println(amTemp);
+            if (isValidTemperature(amTemp))
+            {
+                Serial.println("[DEBUG] setAMTemperature called from MQTT");
+                setAMTemperature(amTemp);
+                updateFirebaseScheduleData("/schedule/amTemperature", String(amTemp));
+            }
+            else
+            {
+                Serial.println("[DEBUG] amTemp from MQTT is invalid");
+            }
+        }
+        else if (topicStr == "pm/temperature")
+        {
+            float pmTemp = message.toFloat();
+            Serial.print("[DEBUG] Extracted pmTemp from MQTT: ");
+            Serial.println(pmTemp);
+            if (isValidTemperature(pmTemp))
+            {
+                Serial.println("[DEBUG] setPMTemperature called from MQTT");
+                setPMTemperature(pmTemp);
+                updateFirebaseScheduleData("/schedule/pmTemperature", String(pmTemp));
+            }
+            else
+            {
+                Serial.println("[DEBUG] pmTemp from MQTT is invalid");
+            }
         }
         else
         {
-            // AM block
-            if (doc.containsKey("am"))
-            {
-                JsonObject am = doc["am"];
-                if (am.containsKey("scheduledTime"))
-                {
-                    String amTime = am["scheduledTime"].as<String>();
-
-                    Serial.print("[DEBUG] Extracted amTime from JSON: ");
-                    Serial.println(amTime);
-                    if (isValidTime(amTime))
-                    {
-                        Serial.println("[DEBUG] setAMTime called from JSON block");
-                        setAMTime(amTime);
-                        updateFirebaseScheduleData("/schedule/amScheduledTime", amTime);
-                    }
-                    else
-                    {
-                        Serial.println("[DEBUG] amTime from JSON is invalid");
-                    }
-                }
-                if (am.containsKey("temperature"))
-                {
-                    float amTemp = am["temperature"].as<float>();
-                    Serial.print("[DEBUG] Extracted amTemp from JSON: ");
-                    Serial.println(amTemp);
-                    if (isValidTemperature(amTemp))
-                    {
-                        Serial.println("[DEBUG] setAMTemperature called from JSON block");
-                        setAMTemperature(amTemp);
-                        updateFirebaseScheduleData("/schedule/amTemperature", String(amTemp));
-                    }
-                    else
-                    {
-                        Serial.println("[DEBUG] amTemp from JSON is invalid");
-                    }
-                }
-            }
-            // PM block
-            if (doc.containsKey("pm"))
-            {
-                JsonObject pm = doc["pm"];
-                if (pm.containsKey("scheduledTime"))
-                {
-                    String pmTime = pm["scheduledTime"].as<String>();
-                    Serial.print("[DEBUG] Extracted pmTime from JSON: ");
-                    Serial.println(pmTime);
-                    if (isValidTime(pmTime))
-                    {
-                        Serial.println("[DEBUG] setPMTime called from JSON block");
-                        setPMTime(pmTime);
-                        updateFirebaseScheduleData("/schedule/pmScheduledTime", pmTime);
-                    }
-                    else
-                    {
-                        Serial.println("[DEBUG] pmTime from JSON is invalid");
-                    }
-                }
-                if (pm.containsKey("temperature"))
-                {
-                    float pmTemp = pm["temperature"].as<float>();
-                    Serial.print("[DEBUG] Extracted pmTemp from JSON: ");
-                    Serial.println(pmTemp);
-                    if (isValidTemperature(pmTemp))
-                    {
-                        Serial.println("[DEBUG] setPMTemperature called from JSON block");
-                        setPMTemperature(pmTemp);
-                        updateFirebaseScheduleData("/schedule/pmTemperature", String(pmTemp));
-                    }
-                    else
-                    {
-                        Serial.println("[DEBUG] pmTemp from JSON is invalid");
-                    }
-                }
-            }
-            Serial.println("✅ Full schedule updated from MQTT JSON");
+            Serial.println("❌ Unrecognized schedule control topic");
         }
-#else
-        Serial.println("❌ ArduinoJson library not available for schedule JSON parsing");
-#endif
-        printScheduleData();
-        return;
-    }
-
+     }
     // Individual topic handling (AM/PM temperature, time, enabled, scheduledTime)
     if (topicStr.endsWith("/am/temperature"))
     {
@@ -406,41 +391,41 @@ void handleScheduleUpdate(const char *topic, const String &message)
     }
 
     // Print updated schedule
-    printScheduleData();
+    // printScheduleData();
 }
 
-void printScheduleData()
-{
-    Serial.println("📅 Current Schedule:");
+// void printScheduleData()
+// {
+//     Serial.println("📅 Current Schedule:");
 
-    // Check AM data
-    if (currentSchedule.amTime.length() > 0 && !isnan(currentSchedule.amTemp))
-    {
-        Serial.print("   🌅 AM: ");
-        Serial.print(currentSchedule.amTime);
-        Serial.print(" → ");
-        Serial.print(currentSchedule.amTemp);
-        Serial.println("°C");
-    }
-    else
-    {
-        Serial.println("   🌅 AM: ❌ No data available");
-    }
+//     // Check AM data
+//     if (currentSchedule.amTime.length() > 0 && !isnan(currentSchedule.amTemp))
+//     {
+//         Serial.print("   🌅 AM: ");
+//         Serial.print(currentSchedule.amTime);
+//         Serial.print(" → ");
+//         Serial.print(currentSchedule.amTemp);
+//         Serial.println("°C");
+//     }
+//     else
+//     {
+//         Serial.println("   🌅 AM: ❌ No data available");
+//     }
 
-    // Check PM data
-    if (currentSchedule.pmTime.length() > 0 && !isnan(currentSchedule.pmTemp))
-    {
-        Serial.print("   🌆 PM: ");
-        Serial.print(currentSchedule.pmTime);
-        Serial.print(" → ");
-        Serial.print(currentSchedule.pmTemp);
-        Serial.println("°C");
-    }
-    else
-    {
-        Serial.println("   🌆 PM: ❌ No data available");
-    }
-}
+//     // Check PM data
+//     if (currentSchedule.pmTime.length() > 0 && !isnan(currentSchedule.pmTemp))
+//     {
+//         Serial.print("   🌆 PM: ");
+//         Serial.print(currentSchedule.pmTime);
+//         Serial.print(" → ");
+//         Serial.print(currentSchedule.pmTemp);
+//         Serial.println("°C");
+//     }
+//     else
+//     {
+//         Serial.println("   🌆 PM: ❌ No data available");
+//     }
+// }
 
 bool isValidTime(const String &timeStr)
 {
