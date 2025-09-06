@@ -310,3 +310,9 @@ For issues and questions:
 ---
 
 **⚠️ Safety Notice**: This system controls heating elements. Ensure proper electrical safety measures, appropriate fuses/breakers, and follow local electrical codes. Test thoroughly before unattended operation.
+
+todo list:
+- [ ] Add over-the-air (OTA) updates
+- [ ] update voltageSensor() for Two heaters
+- [ ] Remove debug output from all files
+- [ ] look for unwanted code for example average calculations not wanted
