@@ -66,6 +66,8 @@ void updateHeaterControl()
         systemStatus.heater = HEATER_ON;
         publishSystemData();
         Serial.println("🔥 Heater ON - Target < Current");
+        bool currentDetected = voltageSensor();
+        Serial.println(currentDetected ? "✅ Heater Current Detected" : "❌ No Heater Current Detected - Possible Fault!");
     }
 }
 

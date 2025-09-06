@@ -525,7 +525,7 @@ void publishSystemData()
         return;
     }
 
-    Serial.println("Publishing system data to MQTT...");
+    //Serial.println("Publishing system data to MQTT...");
 
     // Publish WiFi signal strength
     int rssi = WiFi.RSSI();

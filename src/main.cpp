@@ -73,7 +73,7 @@ void loop()
   long rssi = WiFi.RSSI();
   Serial.print("********===========********Signal strength (RSSI): ");
   Serial.print(rssi);
-  Serial.print(" dBm");
+  Serial.println(" dBm");
 
   // Handle WiFi connection status
   handleWiFi(systemStatus);

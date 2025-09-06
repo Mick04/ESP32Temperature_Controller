@@ -96,6 +96,11 @@ float getTemperature(int sensorIndex)
 
 void readAllSensors()
 {
+    Serial.println("");
+    Serial.println("");
+    Serial.println("");
+    Serial.println("***=============================***");
+
     Serial.println("Reading all temperature sensors:");
 
     for (int i = 0; i < 3; i++)
@@ -110,6 +115,11 @@ void readAllSensors()
             Serial.println("°C");
         }
     }
+        Serial.println("");
+        Serial.println("***=============================***");
+        Serial.println("");
+    Serial.println("");
+    Serial.println("");
 }
 
 int getConnectedSensorCount()

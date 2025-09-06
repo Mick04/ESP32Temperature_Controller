@@ -79,7 +79,7 @@ struct SystemStatus
 #define WS2811_PIN 25  // Pin for WS2811 LED strip
 #define DS18B20_PIN 27 // Pin for DS18B20 temperature sensor (changed from 27)
 #define RELAY_PIN 26   // Pin for relay control
-#define SCT013_PIN 33  // Pin for SCT013 current sensor
+#define CURRENT_SENSOR_PIN 33  // Pin for SCT013 current sensor
 
 // === LED Index Mapping ===
 #define LED_WIFI 0
@@ -92,3 +92,28 @@ struct SystemStatus
 // === Other ===
 #define SENSOR_READ_INTERVAL 1000   // ms
 #define FIREBASE_SYNC_INTERVAL 5000 // ms
+
+//=================================================
+// Hardware for Current Monitoring Configuration
+//=================================================
+
+// Calibration Constants
+#define CALIBRATION_CONSTANT 68.3
+#define BASELINE_OFFSET 1.75
+
+// Detection Thresholds
+#define NOISE_THRESHOLD 0.1
+#define HEATER_OFF_THRESHOLD 0.40
+#define HEATER_ON_THRESHOLD 0.60
+
+// Timing Configuration
+#define SAMPLES_PER_READING 5000
+#define LOG_INTERVAL_MINUTES .5
+#define READING_DELAY_MS 300
+
+// Logging Configuration
+#define LOG_FILE_NAME "/current_log.csv"
+#define ENABLE_DEBUG_OUTPUT true
+
+// Function prototypes
+bool voltageSensor(); // Returns true if heater is drawing current, false if not

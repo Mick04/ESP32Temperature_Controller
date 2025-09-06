@@ -199,6 +199,8 @@ void initFirebase(SystemStatus &status)
  */
 void handleFirebase(SystemStatus &status)
 {
+    Serial.println(" ");
+    Serial.println("Line 203 FirebaseService.cpp"); 
     Serial.println("🤡🤡🤡🤡🤡🤡🤡🤡🤡🤡🤡🤡🤡🤡🤡🤡🤡🤡 Line 198 handleFirebase...");
     Serial.println(" ");
     // === FIREBASE INITIALIZATION PHASE ===
@@ -348,12 +350,20 @@ void pushSensorValuesToFirebase()
     static float lastTargetTemp = NAN;
 
     // Check if schedule data has been loaded from Firebase
+    Serial.println("");
+    Serial.println("**===============================**");
     Serial.println("🔍 Checking if schedule data is available...");
+    Serial.println("*===============================*");
+    Serial.println("");
     bool scheduleDataLoaded = (!isnan(currentSchedule.amTemp) && !isnan(currentSchedule.pmTemp) &&
                                currentSchedule.amTime.length() > 0 && currentSchedule.pmTime.length() > 0);
 
+    Serial.print("");
+    Serial.print("*===============================*");
     Serial.print("📊 Schedule data loaded: ");
     Serial.println(scheduleDataLoaded ? "YES" : "NO");
+    Serial.print("*===============================*");
+    Serial.println("");
 
     // if (!scheduleDataLoaded)
     // {
@@ -366,10 +376,19 @@ void pushSensorValuesToFirebase()
     float currentTarget = getCurrentScheduledTemperature();
 
     // Debug: Always show target temperature comparison
+    Serial.print("");
+    Serial.print("*===============================*");
     Serial.print("🎯 Target temp check - Current: ");
     Serial.print(currentTarget);
-    Serial.print("°C, Last: ");
-    Serial.print(isnan(lastTargetTemp) ? "NaN" : String(lastTargetTemp));
+    Serial.println("°C, ");
+    Serial.print("");
+    Serial.print("*===============================*");
+    Serial.print(" Last:");
+    Serial.println(isnan(lastTargetTemp) ? "NaN" : String(lastTargetTemp));
+    Serial.println("");
+    Serial.println("*===============================*");
+    Serial.println("");
+    Serial.println("*===============================*");
     Serial.print("°C, Difference: ");
     if (!isnan(lastTargetTemp) && !isnan(currentTarget))
     {
