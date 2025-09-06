@@ -319,3 +319,4 @@ todo list:
 - [ ] make chart's scrollable for large data sets in the web app
 - [ ] get connected/unconnected status working in the web app
 - [ ] try to get the dashboard to update the temperature readings in real time
+- [ ] get daylight saving time working in the web app
