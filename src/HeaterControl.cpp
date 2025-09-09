@@ -19,8 +19,9 @@ static bool forceScheduleRefresh = false;
 // Heater control function
 void updateHeaterControl()
 {
+    static float targetTemp = 0; // persistent across calls
     Serial.println("******************Updating Heater Control...**************");
-    //getTime();
+    // getTime();
     String currentTime = getFormattedTime();
     if (currentTime < "12:00")
     {
@@ -28,13 +29,36 @@ void updateHeaterControl()
     }
     else
     {
-       AmFlag = false;
+        AmFlag = false;
     }
     readAllSensors();
     float tempRed = getTemperature(0); // Before the if statement
- 
-    float targetTemp = AmFlag ? currentSchedule.amTemp : currentSchedule.pmTemp;
 
+     
+
+    float newTargetTemp = AmFlag ? currentSchedule.amTemp : currentSchedule.pmTemp;
+
+ String scheduledTime = AmFlag ? currentSchedule.amTime : currentSchedule.pmTime;
+      Serial.println("😈😈😈😈😈😈😈😈😈😈😈😈😈😈😈😈😈😈😈😈");
+      Serial.println("Current Time: " + currentTime);
+      Serial.println("Scheduled Time: " + scheduledTime);
+      Serial.println("================================================");
+      Serial.print("New Target Temp: ");
+      Serial.println(newTargetTemp);
+      Serial.print("Current Target Temp: ");
+      Serial.println(targetTemp);
+      Serial.println("😈😈😈😈😈😈😈😈😈😈😈😈😈😈😈😈😈😈😈😈😈😈😈😈😈");
+    // Only update targetTemp at the scheduled time
+    if (scheduledTime == currentTime)
+    {
+        targetTemp = newTargetTemp;
+        Serial.println("👺👺👺👺👺👺👺👺👺👺👺👺👺👺👺👺👺👺👺👺👺👺👺👺👺");
+        Serial.println("==================================================");
+        Serial.println("Debug output for target temperature update");
+        Serial.print("Target temperature updated to: ");        
+        Serial.println(targetTemp);
+         Serial.println("==================================================");
+    }
     // // Display current values BEFORE control logic
     // Serial.print("************* Target Temperature **************: ");
     // Serial.println(targetTemp);
